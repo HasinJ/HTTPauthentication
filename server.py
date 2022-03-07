@@ -52,6 +52,41 @@ success_page = """
 
 
 #### Helper functions
+def parseBody(users, secrets, body):
+    # type: (dict, dict, str) -> (str)
+
+    """
+    If exactly one among the username or password fields is absent in the entity body (i.e., exactly one field is present),
+    or if both fields are present but the username is not in the passwords file,
+    or the password did not match the corresponding username in the passwords file,
+
+    then we ask the user to log in again.
+    """
+
+    if "&" in body:
+        words = body.split("&")
+        if len(words) != 2: return
+        key = None
+        value = None
+
+        words[0] = words[0].split("=")
+        if words[0][0] == "username": key = words[0][1]
+        elif words[0][0] == "password": value = words[0][1]
+
+        words[1] = words[1].split("=")
+        if words[1][0] == "username": key = words[1][1]
+        elif words[1][0] == "password": value = words[1][1]
+
+        if (not value) or (not key): return
+        if key in users:
+            if users[key] != value: return
+        else: return
+
+        return secrets[key]
+
+
+
+
 # Printing.
 def print_value(tag, value):
     print "Here is the", tag
@@ -73,21 +108,21 @@ signal.signal(signal.SIGINT, sigint_handler)
 # Read login credentials for all the users
 # Read secret data of all the users
 # Send file lines to the server
-loginfile = open('passwords.txt', 'r')
+loginfile = open('passwords.txt', 'r+')
 users = {}
 lines = loginfile.readlines()
 for line in lines:
     line = line.strip().split()
     users[line[0]] = line[1]
 
-secretfile = open('secrets.txt','r')
+secretfile = open('secrets.txt','r+')
 secrets = {}
 lines = secretfile.readlines()
 for line in lines:
     line = line.strip().split()
     secrets[line[0]] = line[1]
 
-
+count=0
 ### Loop to accept incoming HTTP connections and respond.
 while True:
     client, addr = sock.accept()
@@ -102,11 +137,16 @@ while True:
 
     # TODO: Put your application logic here!
     # Parse headers and body and perform various actions
+    if body:
+        secret = parseBody(users, secrets, body)
+        if secret: html_content_to_send = success_page + secret
+        else: html_content_to_send = bad_creds_page
+
 
     # You need to set the variables:
     # (1) `html_content_to_send` => add the HTML content you'd like to send to the client.
     # Right now, we just send the default login page.
-    html_content_to_send = login_page
+    else: html_content_to_send = login_page
     # But other possibilities exist, including
     # html_content_to_send = success_page + <secret>
     # html_content_to_send = bad_creds_page
@@ -122,10 +162,11 @@ while True:
     response += 'Content-Type: text/html\r\n\r\n'
     response += html_content_to_send
     print_value('response', response)
+    count+=1
     client.send(response)
     client.close()
 
-    print "Served one request/connection!"
+    print "Served one request/connection! #{}".format(count)
     print
 
 # We will never actually get here.
