@@ -16,6 +16,8 @@ sock = socket.socket()
 sock.bind(('', port))
 sock.listen(2)
 
+
+
 ### Contents of pages we will serve.
 # Login form
 login_form = """
@@ -25,12 +27,17 @@ login_form = """
    <input type = "submit" value = "Submit" />
    </form>
 """ % port
+
 # Default: Login page.
 login_page = "<h1>Please login</h1>" + login_form
+
 # Error page for bad credentials
 bad_creds_page = "<h1>Bad user/pass! Try again</h1>" + login_form
+
 # Successful logout
 logout_page = "<h1>Logged out successfully</h1>" + login_form
+
+
 # A part of the page that will be displayed after successful
 # login or the presentation of a valid cookie
 success_page = """
@@ -42,6 +49,7 @@ success_page = """
    <br/><br/>
    <h1>Your secret data is here:</h1>
 """ % port
+
 
 #### Helper functions
 # Printing.
@@ -64,8 +72,20 @@ signal.signal(signal.SIGINT, sigint_handler)
 # TODO: put your application logic here!
 # Read login credentials for all the users
 # Read secret data of all the users
+# Send file lines to the server
+loginfile = open('passwords.txt', 'r')
+users = {}
+lines = loginfile.readlines()
+for line in lines:
+    line = line.strip().split()
+    users[line[0]] = line[1]
 
-
+secretfile = open('secrets.txt','r')
+secrets = {}
+lines = secretfile.readlines()
+for line in lines:
+    line = line.strip().split()
+    secrets[line[0]] = line[1]
 
 
 ### Loop to accept incoming HTTP connections and respond.
@@ -84,17 +104,15 @@ while True:
     # Parse headers and body and perform various actions
 
     # You need to set the variables:
-    # (1) `html_content_to_send` => add the HTML content you'd
-    # like to send to the client.
+    # (1) `html_content_to_send` => add the HTML content you'd like to send to the client.
     # Right now, we just send the default login page.
     html_content_to_send = login_page
     # But other possibilities exist, including
     # html_content_to_send = success_page + <secret>
     # html_content_to_send = bad_creds_page
     # html_content_to_send = logout_page
-    
-    # (2) `headers_to_send` => add any additional headers
-    # you'd like to send the client?
+
+    # (2) `headers_to_send` => add any additional headers you'd like to send the client?
     # Right now, we don't send any extra headers.
     headers_to_send = ''
 
@@ -103,10 +121,10 @@ while True:
     response += headers_to_send
     response += 'Content-Type: text/html\r\n\r\n'
     response += html_content_to_send
-    print_value('response', response)    
+    print_value('response', response)
     client.send(response)
     client.close()
-    
+
     print "Served one request/connection!"
     print
 
