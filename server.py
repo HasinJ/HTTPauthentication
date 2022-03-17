@@ -21,7 +21,7 @@ print(hostname)
 ### Contents of pages we will serve.
 # Login form
 login_form = """
-   <form action = "http://"+hostname+":%d" method = "post">
+   <form action = "http://localhost:%d" method = "post">
    Name: <input type = "text" name = "username">  <br/>
    Password: <input type = "text" name = "password" /> <br/>
    <input type = "submit" value = "Submit" />
@@ -42,7 +42,7 @@ logout_page = "<h1>Logged out successfully</h1>" + login_form
 # login or the presentation of a valid cookie
 success_page = """
    <h1>Welcome!</h1>
-   <form action="http://"+hostname+":%d" method = "post">
+   <form action="http://localhost:%d" method = "post">
    <input type = "hidden" name = "action" value = "logout" />
    <input type = "submit" value = "Click here to logout" />
    </form>
@@ -82,7 +82,8 @@ def parseBody(users, secrets, body):
             if users[key] != value: return
         else: return
 
-        return secrets[key]
+        if key in secrets: return secrets[key]
+        else: return
 
 
 def parseHeaders(headers):
@@ -150,11 +151,16 @@ while True:
         headers_to_send = 'Set-Cookie: token=; expires=Thu, 01 Jan 1970 00:00:00 GMT\r\n'
         cookies.clear()
     elif(key):
+        print(key)
         if (key in cookies):
             html_content_to_send = cookies[key]
         else: html_content_to_send = bad_creds_page
 
+    elif body == "username=&password=":
+        html_content_to_send = login_page
+
     elif body:
+
         secret = parseBody(users, secrets, body)
         if secret:
             html_content_to_send = success_page + secret
@@ -187,7 +193,7 @@ while True:
     client.send(response)
     client.close()
 
-    print "Served one request/connection! #{}".format(count)
+    print "Served one request/connection! #{}\n\n".format(count)
     print
 
 # We will never actually get here.
